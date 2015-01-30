@@ -1,0 +1,43 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+require "thor"
+
+require "fileutils"
+
+require "facets/array/commonality"
+
+class Assort < Thor
+  desc "", "file001a.jpg file001b.jpg will be moved to file001 directory"
+  method_option :input_dir,  aliases: :i, default: "."
+  method_option :output_dir, aliases: :o, desc: "output to input_dir if not specified"
+  method_option :pattern,    aliases: :p, default: "*.{jpg,bmp,png}"
+  method_options %w[ dry_run -d ] => false
+  method_options %w[ no_rm   -n ] => false
+  default_task def assort
+    input_dir  = options[:input_dir]
+    output_dir = options[:output_dir] || input_dir
+    pattern    = options[:pattern]
+
+    Dir.chdir(input_dir) { # I don't know why do end becomes syntax error
+      Dir[pattern].commonality {|path| path.match(/\D+\d+/).to_s }.each do |dir, files|
+        dir = File.join(output_dir, dir)
+
+        unless options[:dry_run]
+          FileUtils.mkdir_p(dir)
+          files.each do |file|
+            unless options[:no_rm]
+              FileUtils.mv file, File.join(dir, file)
+            else
+              FileUtils.cp file, File.join(dir, file)
+            end
+          end
+        else
+          puts "#{dir} => #{files.inspect}"
+        end
+      end
+    }
+  end
+end
+
+Assort.start
